@@ -7,18 +7,20 @@ from io import BytesIO
 import numpy as np
 
 import os
-import gdown
+import requests
 
 def ensure_db():
     db_file = "gartic_game.db"
-    gdrive_file_id = "1YMpbnrJtKksRXr9QjjosiGAWCZvHO75p"  
+    db_url = "https://raw.githubusercontent.com/janescu8/Gartic-Phone/main/gartic_game.db"
 
     if not os.path.exists(db_file):
-        url = f"https://drive.google.com/uc?id={gdrive_file_id}"
-        gdown.download(url, db_file, quiet=False)
-        print("📥 從 Google Drive 載入資料庫")
-
-ensure_db()
+        r = requests.get(db_url)
+        if r.status_code == 200:
+            with open(db_file, "wb") as f:
+                f.write(r.content)
+            print("📥 從 GitHub 下載資料庫成功")
+        else:
+            print("❌ 無法從 GitHub 下載資料庫")
 
 # ---------- DB Setup ----------
 def init_db():
