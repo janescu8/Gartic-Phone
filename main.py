@@ -6,6 +6,20 @@ import base64
 from io import BytesIO
 import numpy as np
 
+import os
+import gdown
+
+def ensure_db():
+    db_file = "gartic_game.db"
+    gdrive_file_id = "1YMpbnrJtKksRXr9QjjosiGAWCZvHO75p"  
+
+    if not os.path.exists(db_file):
+        url = f"https://drive.google.com/uc?id={gdrive_file_id}"
+        gdown.download(url, db_file, quiet=False)
+        print("📥 從 Google Drive 載入資料庫")
+
+ensure_db()
+
 # ---------- DB Setup ----------
 def init_db():
     conn = sqlite3.connect("gartic_game.db")
