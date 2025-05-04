@@ -33,3 +33,6 @@ if guess:
         st.success("✅ 猜對了！你太聰明了！| Correct! You're a genius!")
     else:
         st.error("❌ 猜錯了，再試一次吧！| Wrong guess, try again!")
+
+if st.button("送出評分 | Submit Rating"):
+    st.success("感謝你的評分！| Thanks for your feedback!")
