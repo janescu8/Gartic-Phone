@@ -3,3 +3,4 @@ streamlit-drawable-canvas
 pillow
 numpy
 gdown
+requests
