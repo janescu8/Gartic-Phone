@@ -34,5 +34,5 @@ if guess:
     else:
         st.error("❌ 猜錯了，再試一次吧！| Wrong guess, try again!")
 
-if st.button("送出評分 | Submit Rating"):
+if st.button("送出 | Submit"):
     st.success("感謝你的評分！| Thanks for your feedback!")
