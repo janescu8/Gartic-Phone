@@ -33,12 +33,3 @@ if guess:
         st.success("✅ 猜對了！你太聰明了！| Correct! You're a genius!")
     else:
         st.error("❌ 猜錯了，再試一次吧！| Wrong guess, try again!")
-
-# Rating system
-st.subheader("🌟 為這張畫打分！| Rate this Drawing")
-cute = st.slider("可愛程度 | Cuteness", 1, 10, 5)
-creative = st.slider("創意程度 | Creativity", 1, 10, 5)
-likeness = st.slider("像不像原物？| Resemblance", 1, 10, 5)
-
-if st.button("送出評分 | Submit Rating"):
-    st.success("感謝你的評分！| Thanks for your feedback!")
