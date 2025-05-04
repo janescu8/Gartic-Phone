@@ -9,10 +9,10 @@ import numpy as np
 import os
 import requests
 
+# ---------- DB Download ----------
 def ensure_db():
     db_file = "gartic_game.db"
     db_url = "https://raw.githubusercontent.com/janescu8/Gartic-Phone/main/gartic_game.db"
-
     if not os.path.exists(db_file):
         r = requests.get(db_url)
         if r.status_code == 200:
@@ -61,12 +61,21 @@ def get_drawing(room_id):
     conn.close()
     return row[0] if row else None
 
+# ---------- Normalize Function ----------
+def normalize(text):
+    if text is None:
+        return ''
+    # 移除所有空白（包含全形空白）、轉小寫
+    return ''.join(text.lower().split()).replace('　', '')
+
 def submit_guess(room_id, guesser, guess):
     conn = sqlite3.connect("gartic_game.db")
     c = conn.cursor()
     c.execute("SELECT correct_answer FROM rooms WHERE id = ?", (room_id,))
     row = c.fetchone()
-    correct = 1 if row and row[0].strip().lower() == guess.strip().lower() else 0
+    normalized_guess = normalize(guess)
+    normalized_answer = normalize(row[0]) if row else ""
+    correct = 1 if normalized_guess == normalized_answer else 0
     c.execute("INSERT INTO guesses (room_id, guesser, guess, correct) VALUES (?, ?, ?, ?)",
               (room_id, guesser, guess, correct))
     conn.commit()
@@ -78,7 +87,6 @@ def image_to_base64(img_array):
     if img_array is None:
         return None
     try:
-        # normalize: if image is float (0.0~1.0), scale to 0~255
         if img_array.dtype != np.uint8:
             img_array = (img_array * 255).astype("uint8")
         image = Image.fromarray(img_array, "RGBA")
@@ -100,9 +108,10 @@ def base64_to_image(b64_string):
 st.set_page_config(page_title="我畫你猜 - Guess My Drawing", layout="centered")
 st.title("🎨 我畫你猜 | Guess My Drawing")
 
+ensure_db()
 init_db()
 
-room_id = st.text_input("🔑 輸入或建立房間代碼 | Enter or Create Room ID", max_chars=20)
+room_id = st.text_input("🔑 輸入或建立房間代碼 | Enter or Create Room ID", max_chars=20).strip()
 
 tab1, tab2 = st.tabs(["✏️ 畫圖區 | Drawing Area", "🤔 猜圖區 | Guessing Area"])
 
@@ -121,37 +130,47 @@ with tab1:
             key="canvas_draw",
         )
         submitted = st.form_submit_button("儲存畫作 | Save Drawing")
-        if submitted and canvas_result.image_data is not None:
-            img_b64 = image_to_base64(canvas_result.image_data)
-            if img_b64:
-                save_drawing(room_id, correct_answer, img_b64)
-                st.success("✅ 畫作與答案已儲存！")
-                st.caption("（除錯：圖片 base64 前 100 字）")
-                st.code(img_b64[:100])
+        if submitted:
+            if not room_id:
+                st.error("❗ 請輸入房間代碼 (Room ID)")
+            elif canvas_result.image_data is not None:
+                img_b64 = image_to_base64(canvas_result.image_data)
+                if img_b64:
+                    save_drawing(room_id, correct_answer, img_b64)
+                    st.success("✅ 畫作與答案已儲存！")
+                    st.caption("（除錯：圖片 base64 前 100 字）")
+                    st.code(img_b64[:100])
+                else:
+                    st.error("❗ 圖片轉換失敗，請再試一次")
             else:
-                st.error("❗ 圖片轉換失敗，請再試一次")
+                st.error("❗ 請畫點東西再儲存～")
 
 with tab2:
     st.write("🖼️ 畫作如下：")
-    img_str = get_drawing(room_id)
-    if img_str:
-        st.text(f"Base64 長度: {len(img_str)}")  # 除錯用
-        img = base64_to_image(img_str)
-        if img:
-            st.image(img, width=400)
-        else:
-            st.warning("❗ 圖片解碼失敗，請檢查圖片格式")
+    if not room_id:
+        st.warning("⚠️ 請先輸入房間代碼")
     else:
-        st.warning("⚠️ 尚未上傳畫作，請等待或確認 Room ID 是否正確")
-
-    guesser = st.text_input("你的名字 | Your name")
-    guess = st.text_input("你的猜測 | Your guess")
-    if st.button("送出猜測 | Submit Guess"):
-        if not guesser or not guess:
-            st.error("請填寫名字和猜測！")
-        else:
-            correct = submit_guess(room_id, guesser, guess)
-            if correct:
-                st.success("✅ 猜對了！")
+        img_str = get_drawing(room_id)
+        if img_str:
+            st.text(f"Base64 長度: {len(img_str)}")  # 除錯用
+            img = base64_to_image(img_str)
+            if img:
+                st.image(img, width=400)
             else:
-                st.error("❌ 猜錯了，再試試！")
+                st.warning("❗ 圖片解碼失敗，請檢查圖片格式")
+        else:
+            st.warning("⚠️ 尚未上傳畫作，請等待或確認 Room ID 是否正確")
+
+        guesser = st.text_input("你的名字 | Your name")
+        guess = st.text_input("你的猜測 | Your guess")
+        if st.button("送出猜測 | Submit Guess"):
+            if not room_id:
+                st.error("❗ 請輸入房間代碼 (Room ID)")
+            elif not guesser or not guess:
+                st.error("請填寫名字和猜測！")
+            else:
+                correct = submit_guess(room_id, guesser, guess)
+                if correct:
+                    st.success("✅ 猜對了！")
+                else:
+                    st.error("❌ 猜錯了，再試試！")
